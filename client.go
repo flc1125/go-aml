@@ -14,16 +14,8 @@ import (
 )
 
 const (
-	defaultBaseURL   = "https://api.tapd.cn/"
-	defaultUserAgent = "go-tapd"
-)
-
-// authType represents the type of authentication used by the client.
-type authType string
-
-const (
-	authTypeBasic authType = "basic" // Basic Authentication
-	authTypePAT   authType = "pat"   // Personal Access Token (PAT)
+	defaultBaseURL   = "https://aml.tdcc.com.tw/"
+	defaultUserAgent = "go-aml"
 )
 
 var defaultHTTPClient = NewRetryableHTTPClient()
@@ -32,11 +24,8 @@ type Client struct {
 	// baseURL for API requests.
 	baseURL *url.URL
 
-	// authType indicates the type of authentication used by the client.
-	authType authType
-
-	// clientID, clientSecret for basic authentication.
-	clientID, clientSecret string
+	// account, password for authentication.
+	account, password string
 
 	// accessToken for Personal Access Token (PAT) authentication.
 	accessToken string
@@ -48,41 +37,14 @@ type Client struct {
 	httpClient *http.Client
 
 	// services used for talking to different parts of the Tapd API.
-	StoryService      StoryService
-	BugService        BugService
-	IterationService  IterationService
-	TaskService       TaskService
-	CommentService    CommentService
-	ReportService     ReportService
-	AttachmentService AttachmentService
-	TimesheetService  TimesheetService
-	WorkspaceService  WorkspaceService
-	LabelService      LabelService
-	MeasureService    MeasureService
-	UserService       UserService
-	WorkflowService   WorkflowService
-	SettingService    SettingService
 }
 
-// NewClient returns a new Tapd API client.
-// Alias for NewBasicAuthClient.
-func NewClient(clientID, clientSecret string, opts ...ClientOption) (*Client, error) {
-	return NewBasicAuthClient(clientID, clientSecret, opts...)
+// NewClient returns a new AML API client with authentication.
+func NewClient(account, password string, opts ...ClientOption) (*Client, error) {
+	return newClient(append(opts, WithAuth(account, password))...)
 }
 
-// NewBasicAuthClient returns a new Tapd API client with basic authentication.
-func NewBasicAuthClient(clientID, clientSecret string, opts ...ClientOption) (*Client, error) {
-	return newClient(append(opts,
-		WithBasicAuth(clientID, clientSecret))...)
-}
-
-// NewPATClient returns a new Tapd API client with Personal Access Token (PAT) authentication.
-func NewPATClient(accessToken string, opts ...ClientOption) (*Client, error) {
-	return newClient(append(opts,
-		WithAccessToken(accessToken))...)
-}
-
-// newClient returns a new Tapd API client.
+// newClient returns a new AML API client.
 func newClient(opts ...ClientOption) (*Client, error) {
 	c := &Client{
 		userAgent:  defaultUserAgent,
@@ -98,22 +60,6 @@ func newClient(opts ...ClientOption) (*Client, error) {
 	if err := c.setup(); err != nil {
 		return nil, err
 	}
-
-	// services
-	c.StoryService = NewStoryService(c)
-	c.BugService = NewBugService(c)
-	c.IterationService = NewIterationService(c)
-	c.TaskService = NewTaskService(c)
-	c.CommentService = NewCommentService(c)
-	c.ReportService = NewReportService(c)
-	c.AttachmentService = NewAttachmentService(c)
-	c.TimesheetService = NewTimesheetService(c)
-	c.WorkspaceService = NewWorkspaceService(c)
-	c.LabelService = NewLabelService(c)
-	c.MeasureService = NewMeasureService(c)
-	c.UserService = NewUserService(c)
-	c.WorkflowService = NewWorkflowService(c)
-	c.SettingService = NewSettingService(c)
 
 	return c, nil
 }
@@ -177,30 +123,24 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, data any, 
 			body = io.NopCloser(bytes.NewReader(b))
 		}
 	case data != nil:
-		q, err := query.Values(data)
-		if err != nil {
-			return nil, err
+		if encoder, ok := data.(query.Encoder); ok {
+			q := make(url.Values)
+			if err := encoder.EncodeValues("", &q); err != nil {
+				return nil, err
+			}
+			u.RawQuery = q.Encode()
+		} else {
+			q, err := query.Values(data)
+			if err != nil {
+				return nil, err
+			}
+			u.RawQuery = q.Encode()
 		}
-		u.RawQuery = q.Encode()
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, err
-	}
-
-	// basic auth
-	switch c.authType {
-	case authTypeBasic:
-		if c.clientID != "" && c.clientSecret != "" {
-			req.SetBasicAuth(c.clientID, c.clientSecret)
-		}
-	case authTypePAT:
-		if c.accessToken != "" {
-			reqHeaders.Set("Authorization", "Bearer "+c.accessToken)
-		}
-	default:
-		return nil, errors.New("tapd: unknown authentication type")
 	}
 
 	// Set the request specific headers.

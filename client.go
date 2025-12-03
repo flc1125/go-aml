@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -167,29 +166,8 @@ func (c *Client) Do(req *http.Request, v any) (*Response, error) {
 	defer io.Copy(io.Discard, resp.Body) // nolint:errcheck
 
 	// decode response body
-	var rawBody RawBody
-	if err := json.NewDecoder(resp.Body).Decode(&rawBody); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
 		return nil, err
-	}
-
-	// debug mode
-	// body, _ := json.Marshal(rawBody)
-	// fmt.Println(string(body))
-	// spew.Dump(rawBody)
-
-	// check status
-	if rawBody.Status != 1 {
-		return nil, &ErrorResponse{
-			response: resp,
-			rawBody:  &rawBody,
-			err:      errors.New(rawBody.Error),
-		}
-	}
-
-	if v != nil {
-		if err := json.Unmarshal(rawBody.Data, v); err != nil {
-			return nil, err
-		}
 	}
 
 	return newResponse(resp), err

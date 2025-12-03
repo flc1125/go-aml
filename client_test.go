@@ -38,11 +38,12 @@ func createServerClient(t *testing.T, handler http.Handler) (*httptest.Server, *
 	return srv, client
 }
 
-//	func loadData(t *testing.T, filepath string) []byte {
-//		content, err := os.ReadFile(filepath)
-//		assert.NoError(t, err)
-//		return content
-//	}
+func loadData(t *testing.T, filepath string) []byte {
+	content, err := os.ReadFile(filepath)
+	assert.NoError(t, err)
+	return content
+}
+
 //
 //	func TestClient_BasicAuth(t *testing.T) {
 //		_, client := createServerClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

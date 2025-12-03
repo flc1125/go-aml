@@ -2,6 +2,7 @@ package aml
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -27,6 +28,11 @@ type CheckNameRequest struct {
 
 type CheckNameResponse struct {
 	// Define the fields for the name check response
+}
+
+type rawQueryOverResponse struct {
+	Status string `json:"status"`
+	QueryOverResponse
 }
 
 type QueryOverResponse struct {
@@ -69,10 +75,13 @@ func (c *Client) QueryOver(ctx context.Context, opts ...RequestOption) (*QueryOv
 		return nil, nil, err
 	}
 
-	var response QueryOverResponse
-	resp, err := c.Do(req, &response)
+	var rawResponse rawQueryOverResponse
+	resp, err := c.Do(req, &rawResponse)
 	if err != nil {
 		return nil, resp, err
 	}
-	return &response, resp, nil
+	if rawResponse.Status != "ok" {
+		return nil, resp, fmt.Errorf("unexpected status: %s", rawResponse.Status)
+	}
+	return &rawResponse.QueryOverResponse, resp, nil
 }

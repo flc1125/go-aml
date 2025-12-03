@@ -19,9 +19,38 @@ func newResponse(httpResp *http.Response) *Response {
 
 // RawBody represents a raw body.
 type RawBody struct {
-	Status int             `json:"status"`
+	Status string          `json:"status"`
 	Data   json.RawMessage `json:"data"`
-	Error  string          `json:"error"`
+	Error  json.RawMessage `json:"errors"`
+}
+
+// ErrorDetail represents the detail of an error.
+type ErrorDetail struct {
+	Row          int    `json:"row"`
+	PrimaryKey   string `json:"primaryKey"`
+	ErrorMessage string `json:"errorMessage"`
+}
+
+// UploadBatchResponseData represents the data of an upload batch response.
+type UploadBatchResponseData struct {
+	BatchNo string `json:"batchNo"`
+}
+
+// NameCheckResponseData represents the data of a name check response.
+type NameCheckResponseData struct {
+	RCScore int `json:"RCScore"`
+}
+
+// QueryOverResponseData represents the data of a query over response.
+type QueryOverResponseData struct {
+	Remain int `json:"remain"`
+	Over   int `json:"over"`
+}
+
+// UploadHandlerResponseData represents the data of an upload handler response.
+type UploadHandlerResponseData struct {
+	Message string `json:"message"`
+	Rows    int    `json:"rows"`
 }
 
 // ErrorResponse represents a tapd error response.
@@ -33,7 +62,7 @@ type ErrorResponse struct {
 
 func (e *ErrorResponse) Error() string {
 	if e.rawBody != nil {
-		return fmt.Sprintf("code: %d, info: %s", e.rawBody.Status, e.rawBody.Error)
+		return fmt.Sprintf("status: %s, error: %s", e.rawBody.Status, string(e.rawBody.Error))
 	}
 
 	if e.response != nil {
@@ -50,9 +79,4 @@ func (e *ErrorResponse) Unwrap() error {
 func IsErrorResponse(err error) bool {
 	var e *ErrorResponse
 	return errors.As(err, &e)
-}
-
-// CountResponse represents the response of count.
-type CountResponse struct {
-	Count int `json:"count"`
 }

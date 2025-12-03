@@ -1,0 +1,54 @@
+version: "2"
+
+linters:
+  default: none
+
+  enable:
+    - bodyclose
+    - dogsled
+    - durationcheck
+    - errcheck
+    - copyloopvar
+    - govet
+    - goconst
+    - mnd
+    - misspell
+    - gocyclo
+    - gocritic
+    - ineffassign
+    - prealloc
+    - revive
+    - staticcheck
+    - unused
+    - whitespace
+    - wastedassign
+    - unconvert
+    - usetesting
+  settings:
+    revive:
+      # see: https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md
+      rules:
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: '*testing.T,*testing.B,*testing.F'
+        - name: duplicated-imports
+        - name: early-return
+        - name: error-naming
+        - name: errorf
+        - name: package-comments
+          disabled: true
+        - name: time-equal
+        - name: unnecessary-stmt
+        - name: use-any
+        - name: useless-break
+        - name: var-declaration
+        - name: var-naming
+        - name: waitgroup-by-value
+    usetesting:
+      context-background: true
+      context-todo: true
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports

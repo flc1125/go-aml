@@ -21,7 +21,7 @@ func newResponse(httpResp *http.Response) *Response {
 type RawBody struct {
 	Status int             `json:"status"`
 	Data   json.RawMessage `json:"data"`
-	Info   string          `json:"info"`
+	Error  string          `json:"error"`
 }
 
 // ErrorResponse represents a tapd error response.
@@ -33,7 +33,7 @@ type ErrorResponse struct {
 
 func (e *ErrorResponse) Error() string {
 	if e.rawBody != nil {
-		return fmt.Sprintf("code: %d, info: %s", e.rawBody.Status, e.rawBody.Info)
+		return fmt.Sprintf("code: %d, info: %s", e.rawBody.Status, e.rawBody.Error)
 	}
 
 	if e.response != nil {

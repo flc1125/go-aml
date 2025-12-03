@@ -40,18 +40,18 @@ func WithRequestUserAgent(userAgent string) RequestOption {
 	}
 }
 
-type reqRaw[T any] struct {
+type reqRaw struct {
 	UserID   string `json:"userid" url:"userid"`
 	Password string `json:"password" url:"password"`
-	Target   T      `json:"-" url:"-"`
+	Target   any    `json:"-" url:"-"`
 }
 
 var (
-	_ json.Marshaler = (*reqRaw[any])(nil)
-	_ query.Encoder  = (*reqRaw[any])(nil)
+	_ json.Marshaler = (*reqRaw)(nil)
+	_ query.Encoder  = (*reqRaw)(nil)
 )
 
-func (r reqRaw[T]) MarshalJSON() ([]byte, error) {
+func (r reqRaw) MarshalJSON() ([]byte, error) {
 	// 把 Target 转成 map[string]any
 	tBytes, err := json.Marshal(r.Target)
 	if err != nil {
@@ -75,11 +75,20 @@ func (r reqRaw[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(out)
 }
 
-func (r reqRaw[T]) EncodeValues(key string, v *url.Values) error {
+func (r reqRaw) EncodeValues(key string, v *url.Values) error {
 	// Encode the Target field
-	nv, err := query.Values(r.Target)
-	if err != nil {
-		return err
+	encoder, ok := r.Target.(query.Encoder)
+	nv := make(url.Values)
+	if ok {
+		if err := encoder.EncodeValues("", &nv); err != nil {
+			return err
+		}
+	} else {
+		var err error
+		nv, err = query.Values(r.Target)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Merge target values into v

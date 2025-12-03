@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/google/go-querystring/query"
 )
 
 const (
@@ -115,27 +113,27 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, data any, 
 	case method == http.MethodPatch || method == http.MethodPost || method == http.MethodPut:
 		reqHeaders.Set("Content-Type", "application/json")
 
-		if data != nil {
-			b, err := json.Marshal(data)
-			if err != nil {
-				return nil, err
-			}
-			body = io.NopCloser(bytes.NewReader(b))
+		b, err := json.Marshal(reqRaw{
+			UserID:   c.account,
+			Password: c.password,
+			Target:   data,
+		})
+		if err != nil {
+			return nil, err
 		}
-	case data != nil:
-		if encoder, ok := data.(query.Encoder); ok {
-			q := make(url.Values)
-			if err := encoder.EncodeValues("", &q); err != nil {
-				return nil, err
-			}
-			u.RawQuery = q.Encode()
-		} else {
-			q, err := query.Values(data)
-			if err != nil {
-				return nil, err
-			}
-			u.RawQuery = q.Encode()
+		body = io.NopCloser(bytes.NewReader(b))
+
+	default:
+		q := make(url.Values)
+		rawEncoder := reqRaw{
+			UserID:   c.account,
+			Password: c.password,
+			Target:   data,
 		}
+		if err := rawEncoder.EncodeValues("", &q); err != nil {
+			return nil, err
+		}
+		u.RawQuery = q.Encode()
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)

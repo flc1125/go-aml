@@ -172,3 +172,5 @@ func (c *Client) Do(req *http.Request, v any) (*Response, error) {
 
 	return newResponse(resp), err
 }
+
+func par

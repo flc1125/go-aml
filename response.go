@@ -36,11 +36,6 @@ type UploadBatchResponseData struct {
 	BatchNo string `json:"batchNo"`
 }
 
-// NameCheckResponseData represents the data of a name check response.
-type NameCheckResponseData struct {
-	RCScore int `json:"RCScore"`
-}
-
 // QueryOverResponseData represents the data of a query over response.
 type QueryOverResponseData struct {
 	Remain int `json:"remain"`

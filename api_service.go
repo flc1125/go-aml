@@ -2,9 +2,9 @@ package aml
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type status string
@@ -30,20 +30,20 @@ type DownloadBatchResponse struct {
 }
 
 type CheckNameRequest struct {
-	NonEnglishName *string `json:"NonEnglishName,omitempty"` // 非英文姓名，無資料為空字串
-	EnglishName    *string `json:"EnglishName,omitempty"`    // 英文姓名，無資料為空字串
-	DOB            *string `json:"DOB,omitempty"`            // 生日 (YYYY/MM/DD，如：2017/09/01)，無資料為空字串
-	Nationality    *string `json:"Nationality,omitempty"`    // 國籍，ISO 國家代碼(如臺灣為 TW，美國為 US) ，無資料為空字串
+	NonEnglishName string `url:"NonEnglishName"` // 非英文姓名，無資料為空字串
+	EnglishName    string `url:"EnglishName"`    // 英文姓名，無資料為空字串
+	DOB            string `url:"DOB"`            // 生日 (YYYY/MM/DD，如：2017/09/01)，無資料為空字串
+	Nationality    string `url:"Nationality"`    // 國籍，ISO 國家代碼(如臺灣為 TW，美國為 US) ，無資料為空字串
 }
 
 type rawCheckNameResponse struct {
-	Status status `json:"status"`
-	Error  string `json:"error,omitempty"` // 失敗原因，當 status 為 error 時回傳
+	Status status   `json:"status"`
+	Errors []string `json:"errors,omitempty"` // 失敗原因，當 status 為 error 時回傳
 	CheckNameResponse
 }
 
 type CheckNameResponse struct {
-	RCScore int `json:"RCScore"` // 相似度分數，會回傳RC>=91 或 RC=0，如果上傳結果失敗，回傳-1。
+	RCScore int `json:"rcscore"` // 相似度分數，會回傳RC>=91 或 RC=0，如果上傳結果失敗，回傳-1。
 }
 
 type rawQueryOverResponse struct {
@@ -81,7 +81,7 @@ func (c *Client) DownloadBatch(ctx context.Context, request *DownloadBatchReques
 }
 
 func (c *Client) CheckName(ctx context.Context, request *CheckNameRequest, opts ...RequestOption) (*CheckNameResponse, *Response, error) {
-	req, err := c.NewRequest(ctx, http.MethodPost, "amlupload/api/NameCheck", request, opts)
+	req, err := c.newFormRequest(ctx, "amlupload/api/NameCheck", request, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,7 +92,7 @@ func (c *Client) CheckName(ctx context.Context, request *CheckNameRequest, opts 
 		return nil, resp, err
 	}
 	if rawResponse.Status == statusError {
-		return nil, resp, errors.New(rawResponse.Error)
+		return nil, resp, fmt.Errorf("check name failed: %s", strings.Join(rawResponse.Errors, "; "))
 	}
 	return &rawResponse.CheckNameResponse, resp, nil
 }

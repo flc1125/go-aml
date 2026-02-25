@@ -88,30 +88,54 @@ func (c *Client) setBaseURL(urlStr string) error {
 	return nil
 }
 
-func (c *Client) NewRequest(ctx context.Context, method, path string, data any, opts []RequestOption) (*http.Request, error) { //nolint:lll
+func (c *Client) resolveURL(path string) (url.URL, error) {
 	u := *c.baseURL
 	unescaped, err := url.PathUnescape(path)
+	if err != nil {
+		return url.URL{}, err
+	}
+	u.RawPath = c.baseURL.Path + path
+	u.Path = c.baseURL.Path + unescaped
+	return u, nil
+}
+
+func (c *Client) newHTTPRequest(ctx context.Context, method string, u url.URL, contentType string, body io.Reader, opts []RequestOption) (*http.Request, error) { //nolint:lll
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set the encoded path data
-	u.RawPath = c.baseURL.Path + path
-	u.Path = c.baseURL.Path + unescaped
-
-	// Create a request specific headers map.
-	reqHeaders := make(http.Header)
-	reqHeaders.Set("Accept", "application/json")
-
+	req.Header.Set("Accept", "application/json")
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 	if c.userAgent != "" {
-		reqHeaders.Set("User-Agent", c.userAgent)
+		req.Header.Set("User-Agent", c.userAgent)
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			if err := opt(req); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return req, nil
+}
+
+func (c *Client) NewRequest(ctx context.Context, method, path string, data any, opts []RequestOption) (*http.Request, error) { //nolint:lll
+	u, err := c.resolveURL(path)
+	if err != nil {
+		return nil, err
 	}
 
 	var body io.Reader
+	var contentType string
+
 	switch {
 	case method == http.MethodPatch || method == http.MethodPost || method == http.MethodPut:
-		reqHeaders.Set("Content-Type", "application/json")
-
+		contentType = "application/json"
 		b, err := json.Marshal(reqRaw{
 			UserID:   c.account,
 			Password: c.password,
@@ -135,26 +159,26 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, data any, 
 		u.RawQuery = q.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
+	return c.newHTTPRequest(ctx, method, u, contentType, body, opts)
+}
+
+func (c *Client) newFormRequest(ctx context.Context, path string, data any, opts []RequestOption) (*http.Request, error) {
+	u, err := c.resolveURL(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set the request specific headers.
-	for k, v := range reqHeaders {
-		req.Header[k] = v
+	q := make(url.Values)
+	rawEncoder := reqRaw{
+		UserID:   c.account,
+		Password: c.password,
+		Target:   data,
+	}
+	if err := rawEncoder.EncodeValues("", &q); err != nil {
+		return nil, err
 	}
 
-	// Apply request options
-	for _, opt := range opts {
-		if opt != nil {
-			if err := opt(req); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return req, nil
+	return c.newHTTPRequest(ctx, http.MethodPost, u, "application/x-www-form-urlencoded", strings.NewReader(q.Encode()), opts)
 }
 
 func (c *Client) Do(req *http.Request, v any) (*Response, error) {
@@ -172,5 +196,3 @@ func (c *Client) Do(req *http.Request, v any) (*Response, error) {
 
 	return newResponse(resp), err
 }
-
-func par

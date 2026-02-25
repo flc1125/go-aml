@@ -30,10 +30,10 @@ type DownloadBatchResponse struct {
 }
 
 type CheckNameRequest struct {
-	NonEnglishName string `json:"NonEnglishName" url:"NonEnglishName"` // 非英文姓名，無資料為空字串
-	EnglishName    string `json:"EnglishName" url:"EnglishName"`       // 英文姓名，無資料為空字串
-	DOB            string `json:"DOB" url:"DOB"`                       // 生日 (YYYY/MM/DD，如：2017/09/01)，無資料為空字串
-	Nationality    string `json:"Nationality" url:"Nationality"`       // 國籍，ISO 國家代碼(如臺灣為 TW，美國為 US) ，無資料為空字串
+	NonEnglishName string `url:"NonEnglishName"` // 非英文姓名，無資料為空字串
+	EnglishName    string `url:"EnglishName"`    // 英文姓名，無資料為空字串
+	DOB            string `url:"DOB"`            // 生日 (YYYY/MM/DD，如：2017/09/01)，無資料為空字串
+	Nationality    string `url:"Nationality"`    // 國籍，ISO 國家代碼(如臺灣為 TW，美國為 US) ，無資料為空字串
 }
 
 type rawCheckNameResponse struct {
@@ -81,7 +81,7 @@ func (c *Client) DownloadBatch(ctx context.Context, request *DownloadBatchReques
 }
 
 func (c *Client) CheckName(ctx context.Context, request *CheckNameRequest, opts ...RequestOption) (*CheckNameResponse, *Response, error) {
-	req, err := c.NewFormRequest(ctx, "amlupload/api/NameCheck", request, opts)
+	req, err := c.newFormRequest(ctx, "amlupload/api/NameCheck", request, opts)
 	if err != nil {
 		return nil, nil, err
 	}

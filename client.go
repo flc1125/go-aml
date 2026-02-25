@@ -157,6 +157,56 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, data any, 
 	return req, nil
 }
 
+func (c *Client) NewFormRequest(ctx context.Context, path string, data any, opts []RequestOption) (*http.Request, error) {
+	u := *c.baseURL
+	unescaped, err := url.PathUnescape(path)
+	if err != nil {
+		return nil, err
+	}
+
+	u.RawPath = c.baseURL.Path + path
+	u.Path = c.baseURL.Path + unescaped
+
+	reqHeaders := make(http.Header)
+	reqHeaders.Set("Accept", "application/json")
+	reqHeaders.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if c.userAgent != "" {
+		reqHeaders.Set("User-Agent", c.userAgent)
+	}
+
+	q := make(url.Values)
+	rawEncoder := reqRaw{
+		UserID:   c.account,
+		Password: c.password,
+		Target:   data,
+	}
+	if err := rawEncoder.EncodeValues("", &q); err != nil {
+		return nil, err
+	}
+
+	body := strings.NewReader(q.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range reqHeaders {
+		req.Header[k] = v
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			if err := opt(req); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return req, nil
+}
+
 func (c *Client) Do(req *http.Request, v any) (*Response, error) {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -172,5 +222,3 @@ func (c *Client) Do(req *http.Request, v any) (*Response, error) {
 
 	return newResponse(resp), err
 }
-
-func par

@@ -38,7 +38,7 @@ type UploadBatchResponseData struct {
 
 // NameCheckResponseData represents the data of a name check response.
 type NameCheckResponseData struct {
-	RCScore int `json:"RCScore"`
+	RCScore int `json:"rcscore"`
 }
 
 // QueryOverResponseData represents the data of a query over response.

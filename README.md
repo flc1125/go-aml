@@ -1,5 +1,7 @@
 # go-aml
 
+![Supported Go Versions](https://img.shields.io/badge/Go-%3E%3D1.26.0-blue)
+
 Go client for the TDCC AML (Anti-Money Laundering) APIs.
 
 ## Features

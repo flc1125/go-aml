@@ -1,6 +1,6 @@
 module github.com/flc1125/go-aml
 
-go 1.24.0
+go 1.26.0
 
 require (
 	github.com/google/go-querystring v1.2.0

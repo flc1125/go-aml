@@ -11,4 +11,5 @@ require (
 require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v4 v4.0.0 // indirect
 )
